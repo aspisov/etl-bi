@@ -1,0 +1,125 @@
+services:
+  source_postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: source_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./src/sql/init_db.sql:/docker-entrypoint-initdb.d/01_init_db.sql
+      - ./src/sql/fill_db.sql:/docker-entrypoint-initdb.d/02_fill_db.sql
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - etl_network
+
+  destination_postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: destination_db
+    ports:
+      - "5434:5432"
+    networks:
+      - etl_network
+
+  postgres_airflow:
+    image: postgres:15
+    networks:
+      - etl_network
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 5
+
+  init-airflow:
+    image: apache/airflow:2.10.5
+    depends_on:
+      postgres_airflow:
+        condition: service_healthy
+    networks:
+      - etl_network
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres_airflow/airflow
+    command: >
+      bash -c "airflow db init && 
+               airflow users create --username airflow --password password --firstname John --lastname Doe --role Admin --email admin@example.com"
+
+  webserver:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    user: root
+    depends_on:
+      init-airflow:
+        condition: service_completed_successfully
+    networks:
+      - etl_network
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./src/etl:/opt/airflow/etl
+      - ./dbt/etl:/dbt
+      - ~/.dbt:/root/.dbt
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - LOAD_EX=n
+      - EXECUTOR=Local
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres_airflow/airflow
+      - AIRFLOW_CONN_DESTINATION_POSTGRES=postgres://postgres:secret@destination_postgres:5434/destination_db
+      - AIRFLOW__CORE__FERNET_KEY=${FERNET_KEY}
+      - AIRFLOW__WEBSERVER__DEFAULT__USER_USERNAME=airflow
+      - AIRFLOW__WEBSERVER__DEFAULT__USER_PASSWORD=password
+      - AIRFLOW__WWW__USER_USERNAME=airflow
+      - AIRFLOW__WWW__USER_PASSWORD=password
+      - AIRFLOW__WEBSERVER__SECRET_KEY=secret
+    ports:
+      - "8080:8080"
+    command: webserver
+      
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    user: root
+    depends_on:
+      init-airflow:
+        condition: service_completed_successfully
+    networks:
+      - etl_network
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./src/etl:/opt/airflow/etl
+      - ./dbt/etl:/dbt
+      - ~/.dbt:/root/.dbt
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - LOAD_EX=n
+      - EXECUTOR=Local
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres_airflow/airflow
+      - AIRFLOW_CONN_DESTINATION_POSTGRES=postgres://postgres:secret@destination_postgres:5434/destination_db
+      - AIRFLOW__CORE__FERNET_KEY=PS5D01DM5RgD0yRIe83sMJF7m5WyyzIExOfvXUzlJh4=
+      - AIRFLOW__WEBSERVER__DEFAULT__USER_USERNAME=airflow
+      - AIRFLOW__WEBSERVER__DEFAULT__USER_PASSWORD=password
+      - AIRFLOW__WWW__USER_USERNAME=airflow
+      - AIRFLOW__WWW__USER_PASSWORD=password
+      - AIRFLOW__WEBSERVER__SECRET_KEY=secret
+    command: scheduler
+      
+
+volumes:
+  postgres_data:
+
+
+networks:
+  etl_network:
+    driver: bridge
