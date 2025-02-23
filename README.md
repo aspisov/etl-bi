@@ -40,7 +40,9 @@ docker compose up -d
 
 2. Login to Airflow at http://localhost:8080/ with credentials `airflow`/`password` and run `etl_and_dbt` DAG.
 
-3. Transformed data will appear in `destination_db` with schema `public_presentation`.
+3. Transformed data will appear in `destination_db` database with schema `presentation` in tables:
+    - `frequent_flyers`
+    - `airport_traffic`
 
 
 ## References
