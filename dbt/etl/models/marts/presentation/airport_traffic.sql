@@ -1,53 +1,64 @@
 {{
     config(
+        materialized = 'incremental',
         unique_key=['flight_date', 'airport_code', 'linked_airport_code']
     )
 }}
 
-with daily_traffic as (
-    select 
-        date(coalesce(f.actual_arrival, f.actual_departure)) as flight_date,
-        f.arrival_airport as airport_code,
-        f.departure_airport as linked_airport_code,
-        count(*) as flights_in,
-        0 as flights_out,
-        count(distinct bp.ticket_no) as passengers_in,
-        0 as passengers_out
-    from {{ ref('flights') }} f
-    left join {{ ref('boarding_passes') }} bp on f.flight_id = bp.flight_id
-    where coalesce(f.actual_arrival, f.actual_departure) is not null
-    {% if is_incremental() %}
-        and date(coalesce(f.actual_arrival, f.actual_departure)) = current_date - interval '1 day'
-    {% endif %}
-    group by 1, 2, 3
-
-    union all
-
-    select 
-        date(coalesce(f.actual_arrival, f.actual_departure)) as flight_date,
-        f.departure_airport as airport_code,
-        f.arrival_airport as linked_airport_code,
-        0 as flights_in,
-        count(*) as flights_out,
-        0 as passengers_in,
-        count(distinct bp.ticket_no) as passengers_out
-    from {{ ref('flights') }} f
-    left join {{ ref('boarding_passes') }} bp on f.flight_id = bp.flight_id
-    where coalesce(f.actual_arrival, f.actual_departure) is not null
-    {% if is_incremental() %}
-        and date(coalesce(f.actual_arrival, f.actual_departure)) = current_date - interval '1 day'
-    {% endif %}
-    group by 1, 2, 3
-)
-
-select 
-    current_timestamp as created_at,
+WITH arrivals AS (
+  SELECT 
+    DATE(f.actual_arrival) AS flight_date,
+    f.arrival_airport AS airport_code,
+    f.departure_airport AS linked_airport_code,
+    COUNT(*) AS flights_in,
+    COUNT(tf.ticket_no) AS passengers_in
+  FROM {{ ref('flights') }} f
+  LEFT JOIN {{ ref('ticket_flights') }} tf ON f.flight_id = tf.flight_id
+  WHERE f.actual_arrival IS NOT NULL
+  GROUP BY DATE(f.actual_arrival), f.arrival_airport, f.departure_airport
+),
+departures AS (
+  SELECT 
+    DATE(f.actual_departure) AS flight_date,
+    f.departure_airport AS airport_code,
+    f.arrival_airport AS linked_airport_code,
+    COUNT(*) AS flights_out,
+    COUNT(tf.ticket_no) AS passengers_out
+  FROM {{ ref('flights') }} f
+  LEFT JOIN {{ ref('ticket_flights') }} tf ON f.flight_id = tf.flight_id
+  WHERE f.actual_departure IS NOT NULL
+  GROUP BY DATE(f.actual_departure), f.departure_airport, f.arrival_airport
+),
+combined AS (
+  SELECT 
     flight_date,
     airport_code,
     linked_airport_code,
-    sum(flights_in) as flights_in,
-    sum(flights_out) as flights_out,
-    sum(passengers_in) as passengers_in,
-    sum(passengers_out) as passengers_out
-from daily_traffic
-group by 1, 2, 3, 4
+    flights_in,
+    0 AS flights_out,
+    passengers_in,
+    0 AS passengers_out
+  FROM arrivals
+  UNION ALL
+  SELECT 
+    flight_date,
+    airport_code,
+    linked_airport_code,
+    0 AS flights_in,
+    flights_out,
+    0 AS passengers_in,
+    passengers_out
+  FROM departures
+)
+SELECT 
+  NOW() AS created_at,
+  flight_date,
+  airport_code,
+  linked_airport_code,
+  SUM(flights_in) AS flights_in,
+  SUM(flights_out) AS flights_out,
+  SUM(passengers_in) AS passengers_in,
+  SUM(passengers_out) AS passengers_out
+FROM combined
+GROUP BY flight_date, airport_code, linked_airport_code
+ORDER BY flight_date, airport_code, linked_airport_code
