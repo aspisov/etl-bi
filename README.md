@@ -1,11 +1,18 @@
 # etl-bi
 
+## Setup
 
+1. Generate Fernet key and add it to .env file:
 ```bash
-pip install "apache-airflow[celery]==2.10.5" --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.10.5/constraints-3.12.txt"
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-To edit dbt profile, run:
+Edit dbt profile:
 ```bash
 vim ~/.dbt/profiles.yml 
 ```
+
+
+## References
+
+- https://github.com/justinbchau/custom-elt-project
