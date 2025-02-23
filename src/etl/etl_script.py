@@ -49,6 +49,10 @@ def main():
         print("Source database is not ready. Exiting.")
         exit(1)
 
+    if not wait_for_db(DESTINATION_CONFIG["host"]):
+        print("Destination database is not ready. Exiting.")
+        exit(1)
+
     dump_command = [
         "pg_dump",
         "-h",

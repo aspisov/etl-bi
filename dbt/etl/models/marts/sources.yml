@@ -1,0 +1,17 @@
+version: 2
+
+sources:
+  - name: destination_db
+    description: "Main database containing flight booking system tables"
+    database: destination_db
+    schema: public
+    tables:
+      - name: flights
+        description: "Flights table"
+      - name: boarding_passes
+        description: "Boarding passes table"
+      - name: tickets
+        description: "Tickets table"
+      - name: ticket_flights
+        description: "Ticket flights table"
+      

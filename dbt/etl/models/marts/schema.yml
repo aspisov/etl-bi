@@ -1,0 +1,73 @@
+version: 2
+
+models:
+  - name: frequent_flyers
+    description: "Frequent flyers analysis mart"
+    columns:
+      - name: created_at
+        description: "Timestamp of the last update"
+        tests:
+          - not_null
+      - name: passenger_id
+        description: "Unique passenger identifier"
+        tests:
+          - unique
+          - not_null
+      - name: passenger_name
+        description: "Passenger full name"
+        tests:
+          - not_null
+      - name: flights_number
+        description: "Total number of flights"
+        tests:
+          - not_null
+      - name: purchase_sum
+        description: "Total amount spent on flights"
+        tests:
+          - not_null
+      - name: home_airport
+        description: "Most frequently used airport code"
+        tests:
+          - not_null
+      - name: customer_group
+        description: "Customer segment based on GMV percentile"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['5', '10', '25', '50', '50+']
+
+  - name: airport_traffic
+    description: "Daily airport traffic analysis"
+    columns:
+      - name: created_at
+        description: "Timestamp of the last update"
+        tests:
+          - not_null
+      - name: flight_date
+        description: "Date of flights"
+        tests:
+          - not_null
+      - name: airport_code
+        description: "Main airport code"
+        tests:
+          - not_null
+      - name: linked_airport_code
+        description: "Connected airport code"
+        tests:
+          - not_null
+      - name: flights_in
+        description: "Number of incoming flights"
+        tests:
+          - not_null
+      - name: flights_out
+        description: "Number of outgoing flights"
+        tests:
+          - not_null
+      - name: passengers_in
+        description: "Number of incoming passengers"
+        tests:
+          - not_null
+      - name: passengers_out
+        description: "Number of outgoing passengers"
+        tests:
+          - not_null

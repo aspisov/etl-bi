@@ -36,6 +36,21 @@ services:
       - source_postgres
       - destination_postgres
 
+  dbt:
+    image: ghcr.io/dbt-labs/dbt-postgres:1.4.7
+    command: ["run", "--profiles-dir", "/root", "--project-dir", "/dbt"]
+    networks:
+      - etl_network
+    volumes:
+      - ./dbt/etl:/dbt
+      - ~/.dbt:/root
+    depends_on:
+      etl_script:
+        condition: service_completed_successfully
+    environment:
+      DBT_PROFILE: default
+      DBT_TARGET: dev
+
 volumes:
   postgres_data:
 
