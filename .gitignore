@@ -173,3 +173,5 @@ cython_debug/
 # Airflow
 logs/
 plugins
+
+.DS_Store

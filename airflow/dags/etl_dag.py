@@ -6,6 +6,9 @@ from airflow.operators.bash import BashOperator
 from airflow.providers.docker.operators.docker import DockerOperator
 import subprocess
 
+DBT_PROJECT_SOURCE_PATH = "/Users/dimaaspisov/Desktop/GitHub/etl-bi/dbt/etl"
+DBT_PROFILE_SOURCE_PATH = "/Users/dimaaspisov/.dbt"  # don't use ~/.dbt/
+
 default_args = {
     "owner": "airflow",
     "depends_on_past": False,
@@ -52,17 +55,18 @@ def create_dag():
             "/dbt",
             "--full-refresh",
         ],
+        mount_tmp_dir=False,
         auto_remove="success",
         docker_url="unix://var/run/docker.sock",
         network_mode="bridge",
         mounts=[
             Mount(
-                source="/Users/dimaaspisov/Desktop/GitHub/etl-bi/dbt/etl",
+                source=DBT_PROJECT_SOURCE_PATH,
                 target="/dbt",
                 type="bind",
             ),
             Mount(
-                source="/Users/dimaaspisov/.dbt",
+                source=DBT_PROFILE_SOURCE_PATH,
                 target="/root/.dbt",
                 type="bind",
             ),
