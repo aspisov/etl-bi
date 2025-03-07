@@ -175,3 +175,5 @@ logs/
 plugins
 
 .DS_Store
+
+*.code-workspace

@@ -38,11 +38,18 @@ DBT_PROFILE_SOURCE_PATH = "/Users/dimaaspisov/.dbt"
 docker compose up -d
 ```
 
-2. Login to Airflow at http://localhost:8080/ with credentials `airflow`/`password` and run `etl_and_dbt` DAG.
+2. Login to Airflow at http://localhost:8080/ with credentials `airflow`/`airflow` and run `etl_and_dbt` DAG.
 
 3. Transformed data will appear in `destination_db` database with schema `presentation` in tables:
     - `frequent_flyers`
     - `airport_traffic`
+
+4. Generate a superset secret key and add it to `.env` file:
+```bash
+python -c "import os; print(os.urandom(24).hex())"
+```
+
+5. Connect to Superset at http://localhost:8088/ with credentials `admin`/`admin` and create a new dashboard.
 
 
 ## References
