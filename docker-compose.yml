@@ -1,6 +1,7 @@
 services:
   source_postgres:
     image: postgres:15
+    container_name: source_postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -16,6 +17,7 @@ services:
 
   destination_postgres:
     image: postgres:15
+    container_name: destination_postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
