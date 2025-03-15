@@ -49,8 +49,8 @@ docker compose up -d
 python -c "import os; print(os.urandom(24).hex())"
 ```
 
-5. Connect to Superset at http://localhost:8088/ with credentials `admin`/`admin` and create a new dashboard.
-
+5. Connect to Superset at http://localhost:8088/ with credentials `admin`/`admin`.
+6. Upload dashboards from `superset` folder.
 
 ## References
 
